@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { event } from '@/lib/event';
 import s from './home.module.css';
@@ -31,19 +30,12 @@ export function Countdown() {
 
   return (
     <div className={s.countGrid} role="timer" aria-label="Time until the event begins">
-      {units.map(([label, value]) => {
-        const text = value === null ? '––' : String(value).padStart(2, '0');
-        return (
-          <div className={s.countUnit} key={label}>
-            <strong>
-              <motion.span key={text} initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.2, 0.7, 0.2, 1] }}>
-                {text}
-              </motion.span>
-            </strong>
-            <span>{label}</span>
-          </div>
-        );
-      })}
+      {units.map(([label, value]) => (
+        <div className={s.countUnit} key={label}>
+          <strong>{value === null ? '–' : String(value).padStart(2, '0')}</strong>
+          <span>{label}</span>
+        </div>
+      ))}
     </div>
   );
 }

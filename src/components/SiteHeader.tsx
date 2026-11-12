@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { event } from '@/lib/event';
-import { ArrowIcon, StarMark } from './Icons';
 import s from './chrome.module.css';
 
 type Props = { variant?: 'home' | 'portal'; label?: string };
@@ -21,11 +20,8 @@ export function SiteHeader({ variant = 'home', label }: Props) {
     <header className={`${s.header} ${scrolled || variant === 'portal' ? s.solid : ''}`}>
       <div className={`container ${s.bar}`}>
         <Link href="/" className={s.brand} aria-label={`${event.name} home`}>
-          <span className={s.mark}><StarMark /></span>
-          <span>
-            <strong>{event.shortName}</strong>
-            <small>{label ?? `${event.organisation} · ${event.title.sub} ${event.title.year}`}</small>
-          </span>
+          <strong>{event.shortName}</strong>
+          <small>{label ?? `${event.title.sub} ${event.title.year}`}</small>
         </Link>
         {variant === 'home' ? (
           <>
@@ -34,14 +30,10 @@ export function SiteHeader({ variant = 'home', label }: Props) {
               <a href="#programme">Programme</a>
               <a href="#details">Details</a>
             </nav>
-            <Link className={s.cta} href="/invite">Your RSVP <ArrowIcon /></Link>
+            <Link className={s.cta} href="/invite">Your RSVP</Link>
           </>
         ) : (
-          <Link className={s.cta} href="/" aria-label="Event website">
-            <span className={s.ctaLong}>Event website</span>
-            <span className={s.ctaShort} aria-hidden="true">Home</span>
-            <ArrowIcon />
-          </Link>
+          <Link className={s.cta} href="/">Event website</Link>
         )}
       </div>
     </header>

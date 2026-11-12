@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Html5Qrcode } from 'html5-qrcode';
 import { event } from '@/lib/event';
-import { ArrowIcon } from './Icons';
 import p from './portal.module.css';
 import s from './staff.module.css';
 
@@ -147,13 +146,12 @@ export function StaffClient() {
   if (phase === 'login') {
     return (
       <div className={`${p.panel} ${s.login}`}>
-        <p className={p.overline}>Private staff access</p>
         <h1 className={p.title}>Staff check-in</h1>
         <p className={p.text}>{event.dateText} · {event.venue} {event.city}. Sign in with the staff password to manage arrivals.</p>
         <form className={s.form} onSubmit={signIn}>
           <label htmlFor="staff-password">Staff password</label>
           <input id="staff-password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-          <button className="btn btn-gold btn-block" type="submit">Open the dashboard <ArrowIcon /></button>
+          <button className="btn btn-gold btn-block" type="submit">Open the dashboard</button>
         </form>
         <p className={`${p.message} ${p.messageError}`} role="status">{loginStatus}</p>
       </div>
@@ -197,7 +195,7 @@ export function StaffClient() {
           <form className={s.form} onSubmit={(e) => { e.preventDefault(); checkIn(manual); }}>
             <label htmlFor="guest-token">Guest pass link or 32-character code</label>
             <textarea id="guest-token" rows={3} value={manual} onChange={(e) => setManual(e.target.value)} placeholder="https://…/ticket?token=…" />
-            <button className="btn btn-wine btn-block" type="submit">Check in guest <ArrowIcon /></button>
+            <button className="btn btn-wine btn-block" type="submit">Check in guest</button>
           </form>
           <div className={`${s.result} ${s[result.kind]}`} role="status" aria-live="polite">
             {result.heading && <strong>{result.heading}</strong>}

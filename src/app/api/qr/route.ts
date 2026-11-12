@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     errorCorrectionLevel: 'M',
     width: 420,
     margin: 2,
-    color: { dark: '#050203', light: '#f8e6b8' },
+    color: { dark: '#050203', light: '#ead7a8' },
   });
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,

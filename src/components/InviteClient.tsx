@@ -1,20 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { event } from '@/lib/event';
-import { ArrowIcon, SparkIcon } from './Icons';
+import { forgetPass, isPassCode, readSavedPass, savePass } from '@/lib/guestPass';
 import p from './portal.module.css';
 
 type Guest = { name: string; department?: string; seat?: string; rsvp?: string; receivedAt?: string };
 type Action = { action: 'rsvp'; answer: 'Yes' | 'No' } | { action: 'acknowledge' };
-const TOKEN_RE = /^[a-f0-9]{32}$/i;
 
-/** A guest's personal RSVP page. The token in the link identifies the guest; nothing is stored in the browser. */
+/**
+ * A guest's personal RSVP page. The code in their link identifies the guest.
+ * Once it has loaded, the code is remembered on the device so the guest can come back
+ * from the home page without the email link.
+ */
 export function InviteClient() {
+  const router = useRouter();
   const token = useSearchParams().get('token') ?? '';
-  const valid = TOKEN_RE.test(token);
+  const valid = isPassCode(token);
+  // 'checking' until we have looked for a pass saved on this device.
+  const [saved, setSaved] = useState<'checking' | 'none' | 'found'>('checking');
   const [guest, setGuest] = useState<Guest | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,12 +38,33 @@ export function InviteClient() {
     return data.guest as Guest;
   }, [token]);
 
+  // Opened without a personal link: return to the pass saved on this device, if there is one.
+  useEffect(() => {
+    if (valid) return;
+    const remembered = readSavedPass();
+    if (remembered) {
+      setSaved('found');
+      router.replace(`/invite?token=${encodeURIComponent(remembered)}`);
+    } else {
+      setSaved('none');
+    }
+  }, [valid, router]);
+
   useEffect(() => {
     if (!valid) return;
     let live = true;
-    request().then((g) => live && setGuest(g)).catch((e: Error) => live && setError(e.message));
+    setGuest(null); setError('');
+    request()
+      .then((g) => { if (live) { setGuest(g); savePass(token); } })
+      .catch((e: Error) => { if (live) { setError(e.message); if (readSavedPass() === token) forgetPass(); } });
     return () => { live = false; };
-  }, [valid, request]);
+  }, [valid, request, token]);
+
+  const removeFromDevice = () => {
+    forgetPass();
+    setGuest(null); setMessage({ text: '' }); setSaved('none');
+    router.replace('/invite');
+  };
 
   const act = async (body: Action) => {
     setBusy(true);
@@ -52,7 +79,8 @@ export function InviteClient() {
     }
   };
 
-  const problem = !valid ? 'Please open the personal link sent to you by email. Public registration is not available.' : error;
+  const waiting = !valid && saved !== 'none';
+  const problem = waiting ? '' : !valid ? 'Please open the personal link sent to you by email. Public registration is not available.' : error;
   const rsvp = guest?.rsvp ?? '';
   const seatingPlan = /^https:\/\//i.test(event.seatingPlanUrl) ? event.seatingPlanUrl : '';
 
@@ -71,7 +99,6 @@ export function InviteClient() {
       <div className={p.panel}>
         {problem ? (
           <div>
-            <SparkIcon className={p.errorMark} />
             <h2 className={p.errorTitle}>We could not find your details</h2>
             <p className={p.text}>{problem}</p>
             <div className={p.actions}>
@@ -117,7 +144,7 @@ export function InviteClient() {
                 <img className={p.qr} src={`/api/qr?token=${encodeURIComponent(token)}`} alt="Your personal QR entry pass" width={240} height={240} />
                 <p className={p.caption}>Please present this QR code to the check-in team on arrival. It is personal to you and should not be shared.</p>
                 <div className={p.actions}>
-                  <Link className="btn btn-wine" href={`/ticket?token=${encodeURIComponent(token)}`}>Open full-screen pass <ArrowIcon /></Link>
+                  <Link className="btn btn-wine" href={`/ticket?token=${encodeURIComponent(token)}`}>Open full-screen pass</Link>
                   {seatingPlan && <a className={`link-quiet ${p.ack}`} href={seatingPlan} target="_blank" rel="noopener noreferrer">View the seating plan</a>}
                 </div>
               </div>
@@ -128,6 +155,12 @@ export function InviteClient() {
 
       <p className={`${p.message} ${message.bad ? p.messageError : ''}`} role="status" aria-live="polite">{message.text}</p>
       <p className={p.note}>For questions, or to update your details, please contact the HR or event team.</p>
+      {guest && (
+        <p className={p.note}>
+          Your pass is remembered on this device so you can return to it from the home page.{' '}
+          <button type="button" className="link-quiet" onClick={removeFromDevice}>Remove my pass from this device</button>
+        </p>
+      )}
     </>
   );
 }

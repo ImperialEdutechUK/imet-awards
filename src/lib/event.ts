@@ -43,9 +43,16 @@ export const event = {
   themeLabel: 'Event theme',
   theme: [
     { name: 'Black', colour: '#050203' },
-    { name: 'Red (Burgundy)', colour: '#7d1531' },
-    { name: 'Gold', colour: '#e2b866' },
+    { name: 'Red (Burgundy)', colour: '#7d2124' },
+    { name: 'Gold', colour: '#c8a45d' },
   ],
+
+  // The velvet curtain that guests click to open before they see the site.
+  curtain: {
+    enabled: true,
+    oncePerSession: true, // show it once per browser session; set to false to show it on every visit
+    hint: 'Open the curtain',
+  },
 
   contactEmail: '', // optional: approved HR or event team address shown in the footer
   seatingPlanUrl: '', // optional: HTTPS link to the approved seating plan, shown to confirmed guests

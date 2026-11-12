@@ -8,7 +8,7 @@ The iMET awards website, built with **Next.js, React and TypeScript** and styled
 
 | Address | What it is |
 | --- | --- |
-| `/` | Public event page: animated hero, live countdown, the evening, programme, details and event theme |
+| `/` | Public event page: curtain intro, event title, live countdown, the evening, programme, details and event theme |
 | `/invite?token=…` | A guest's personal RSVP page: confirm or decline, see their seat, collect their QR entry pass |
 | `/ticket?token=…` | Full-screen QR pass for confirmed guests |
 | `/staff` | Password-protected check-in dashboard: live totals, camera QR scanner, manual check-in. Installable on a phone's home screen |
@@ -21,8 +21,9 @@ There is **no public self-registration**: only people on HR's list, with their p
 ## Built with
 
 - **Next.js 16** (App Router) and **React 19**, written in **TypeScript**
-- **Motion** for the hero sequence, scroll effects and countdown
+- **Motion** for the title's entrance; the opening curtain is drawn on a canvas
 - **CSS Modules** with one set of theme colours in `src/app/globals.css`
+- One background photograph (the burgundy wall) fixed behind every page
 - Fonts (Cinzel, Jost, Pinyon Script) are bundled with the site, so nothing loads from Google Fonts
 - `qrcode` for passes and `html5-qrcode` for the staff scanner
 - Google Sheets + Apps Script as the guest database and mailer
@@ -49,10 +50,20 @@ If the date changes, update `startISO` and `endISO` there **and** `EVENT_DATE` i
 | --- | --- |
 | Event name, date, time, venue, programme, notes | `src/lib/event.ts` |
 | Theme colours | the variables at the top of `src/app/globals.css` |
+| Background photograph | `public/wall-wide.webp` and `public/wall-portrait.webp` |
+| Curtain on or off | the `curtain` block in `src/lib/event.ts` |
 | Home page sections | `src/app/page.tsx` and `src/components/home.module.css` |
 | RSVP and pass pages | `src/components/InviteClient.tsx`, `TicketClient.tsx`, `portal.module.css` |
 | Staff dashboard | `src/components/StaffClient.tsx`, `staff.module.css` |
 | Invitation, reminder and survey emails | `sheets/AppsScript.gs` |
+
+## The curtain and the background
+
+**Curtain.** Guests first see a closed velvet curtain with the event name. Clicking or tapping it (or pressing Enter) draws the curtains aside and reveals the site. It appears on the home page and on a guest's personal RSVP page, once per browser session, and never on the QR pass or staff pages. Guests who have asked their device to reduce motion skip it. Settings are in the `curtain` block of `src/lib/event.ts`: set `enabled` to `false` to remove it, or `oncePerSession` to `false` to show it on every visit.
+
+**Background.** The textured burgundy wall behind every page is one photograph, stored twice in `public/`: `wall-wide.webp` (1920 × 1080, for laptops and desktops) and `wall-portrait.webp` (736 × 1308, for phones). The wide version is the same photograph turned on its side so the lit area sits at the top. To change the background, replace both files with images of the same names.
+
+The design is deliberately plain: flat gold type, thin rules and the wall photograph, with no glows, particles or illustrations.
 
 ## 1. Google Sheet (HR's single source of truth)
 
@@ -118,6 +129,7 @@ On Android Chrome open `/staff` and choose **Install app** or **Add to Home scre
 
 - The Sheet stays private. Public pages never receive the guest list or email addresses.
 - QR codes hold a random per-guest link, not a name or email. Treat links and codes as bearer passes; ask guests not to forward them.
+- Once a guest opens their personal link, their pass code is remembered in that browser, so **Your RSVP** on the home page returns them to their RSVP and QR pass. Only the random code is kept, never a name or email. **Remove my pass from this device** on the RSVP page clears it; guests using a shared computer should do this.
 - The staff dashboard uses a server-side password and a signed, HTTP-only session cookie. That suits a modest internal event. For larger or regulated use, move to single sign-on, per-user roles, access logs and a purpose-built database.
 - Google Sheets suits a few hundred guests; very busy entrances can hit its limits.
 - Not included: offline check-in, email bounce reporting, an editable seating chart, or an in-site survey dashboard.

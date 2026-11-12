@@ -16,12 +16,18 @@ export const metadata: Metadata = {
   description: `${event.name}: ${event.dayText}, ${event.dateText}, ${event.timeText} at ${event.venue} ${event.city}.`,
 };
 
+const curtainMarker = `try{if(sessionStorage.getItem('imet-curtain')==='1')document.documentElement.dataset.curtain='seen'}catch(e){}`;
+
 export const viewport: Viewport = { themeColor: '#050203', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
+        {/* Runs before the page paints, so guests who have already opened the curtain never see it flash. */}
+        <script dangerouslySetInnerHTML={{ __html: curtainMarker }} />
+        <noscript><style>{'[data-intro-curtain]{display:none!important}'}</style></noscript>
+        <div className="wall" aria-hidden="true" />
         <Providers>{children}</Providers>
       </body>
     </html>

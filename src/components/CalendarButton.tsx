@@ -1,7 +1,6 @@
 'use client';
 
 import { event } from '@/lib/event';
-import { CalendarIcon } from './Icons';
 
 /** Downloads a calendar file for the event, built from the dates in src/lib/event.ts. */
 export function CalendarButton({ className = 'btn btn-ghost' }: { className?: string }) {
@@ -22,10 +21,5 @@ export function CalendarButton({ className = 'btn btn-ghost' }: { className?: st
     document.body.appendChild(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   };
-  return (
-    <button type="button" className={className} onClick={download}>
-      <CalendarIcon />
-      Add to calendar
-    </button>
-  );
+  return <button type="button" className={className} onClick={download}>Add to calendar</button>;
 }

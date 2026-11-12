@@ -1,19 +1,32 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { event } from '@/lib/event';
+import { isPassCode, readSavedPass, savePass } from '@/lib/guestPass';
 import p from './portal.module.css';
-
-const TOKEN_RE = /^[a-f0-9]{32}$/i;
 
 /** Full-screen QR pass for confirmed guests. */
 export function TicketClient() {
+  const router = useRouter();
   const token = useSearchParams().get('token') ?? '';
-  const valid = TOKEN_RE.test(token);
+  const valid = isPassCode(token);
+  const [saved, setSaved] = useState<'checking' | 'none' | 'found'>('checking');
   const [guest, setGuest] = useState<{ name: string; seat?: string } | null>(null);
   const [error, setError] = useState('');
+
+  // Opened without a personal link: use the pass saved on this device, if there is one.
+  useEffect(() => {
+    if (valid) return;
+    const remembered = readSavedPass();
+    if (remembered) {
+      setSaved('found');
+      router.replace(`/ticket?token=${encodeURIComponent(remembered)}`);
+    } else {
+      setSaved('none');
+    }
+  }, [valid, router]);
 
   useEffect(() => {
     if (!valid) return;
@@ -24,7 +37,7 @@ export function TicketClient() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) throw new Error(data.error || 'Pass unavailable');
         if (data.guest.rsvp !== 'Yes') throw new Error('Please confirm your attendance to activate your pass.');
-        if (live) setGuest(data.guest);
+        if (live) { setGuest(data.guest); savePass(token); }
       } catch (e) {
         if (live) setError((e as Error).message);
       }
@@ -32,7 +45,8 @@ export function TicketClient() {
     return () => { live = false; };
   }, [valid, token]);
 
-  const problem = !valid ? 'Please open the personal pass link from your email.' : error;
+  const waiting = !valid && saved !== 'none';
+  const problem = waiting ? '' : !valid ? 'Please open the personal pass link from your email.' : error;
 
   return (
     <div className={p.panel}>
