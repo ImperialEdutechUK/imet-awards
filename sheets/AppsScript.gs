@@ -84,8 +84,10 @@ function action_(payload) {
       declined:guests.filter(r=>String(r[7]).trim()==='No').length,
       checkedIn:guests.filter(r=>r[9]).length}};
   }
+  if (['surveyGet','surveySave','surveySend'].includes(action)) return surveyAdmin_(payload);
   const token = String(payload.token||'').toLowerCase();
   if (!/^[a-f0-9]{32}$/.test(token)) return {ok:false,error:'Invalid pass',status:400};
+  if (action==='surveyForm' || action==='surveySubmit') return surveyGuest_(payload, token);
   if(action==='lookup') {
     const {rows} = all_(); const i=find_(rows,token);
     if(i<0) return {ok:false,error:'Invitation not found. Contact HR.',status:404};
@@ -194,11 +196,12 @@ function sendCountdownReminders() {
 }
 function sendPostEventSurvey() {
   const cfg=settings_(); if(!cfg.date||!cfg.survey) return;
+  if(surveyDefinition_()) return; // HR is running the survey from the staff dashboard instead
   const elapsed=Date.now()-new Date(cfg.date).getTime();
   if(elapsed<24*3600000) return;
   const {sh,rows}=all_(); let quota=Math.min(MailApp.getRemainingDailyQuota(),40);
   for(let i=0;i<rows.length&&quota>0;i++) {
-    const r=rows[i]; if(!r[0]||!r[1]||r[13]||(!r[9]&&String(r[7])!=='Yes')) continue;
+    const r=rows[i]; if(!r[0]||!r[1]||r[13]||!r[9]) continue; // only guests who were checked in at the event
     try {
       sendStyled_(String(r[1]),'Thank you for celebrating with us',cfg.title,
         'Thank you for being part of the event. We would love to hear your thoughts. Please take a moment to complete our short survey.',
@@ -213,3 +216,173 @@ function installDailyTrigger() {
   ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()===name).forEach(t=>ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger(name).timeBased().everyDays(1).atHour(9).create();
 }
+
+/* ==========================================================================
+ * Post-event survey, created and sent from the staff dashboard on the website.
+ * - HR writes the questions on /staff. The definition is kept in Script properties.
+ * - Emails go ONLY to guests with a CheckedInAt time, once each (SurveySentAt).
+ * - Answers are written to the "Survey responses" tab, one row per guest.
+ * ========================================================================== */
+const SURVEY_TAB = 'Survey responses';
+const SURVEY_FIXED = ['Token','SubmittedAt','Name','Department'];
+const SURVEY_BATCH = 10; // emails per request, so each request finishes quickly; the website keeps asking until all are sent
+
+function surveyDefinition_() {
+  const raw = props_().getProperty('SURVEY_DEFINITION');
+  if (!raw) return null;
+  try { const survey = JSON.parse(raw); return survey && Array.isArray(survey.questions) ? survey : null; }
+  catch(_) { return null; }
+}
+function cleanSurvey_(input) {
+  const src = input || {};
+  const title = String(src.title||'').trim().slice(0,120);
+  const message = String(src.message||'').trim().slice(0,600);
+  const questions = (Array.isArray(src.questions) ? src.questions : []).map(q=>({
+    text: String((q&&q.text)||'').trim().slice(0,200),
+    type: ['rating','yesno','text'].includes(q&&q.type) ? q.type : 'text'
+  })).filter(q=>q.text).slice(0,12);
+  if (!title) return {error:'Give the survey a title.'};
+  if (!questions.length) return {error:'Add at least one question.'};
+  return {survey:{title,message,questions}};
+}
+// Text typed by people is never allowed to act as a spreadsheet formula.
+function plain_(v) {
+  const text = String(v==null ? '' : v).slice(0,1000);
+  return /^[=+\-@]/.test(text) ? "'"+text : text;
+}
+function surveyTab_(survey, create) {
+  const ss = spreadsheet_(); let sh = ss.getSheetByName(SURVEY_TAB);
+  if (!sh) { if (!create) return null; sh = ss.insertSheet(SURVEY_TAB); }
+  if (create && sh.getLastRow() < 2) {
+    const head = SURVEY_FIXED.concat(survey.questions.map(q=>plain_(q.text)));
+    sh.getRange(1,1,1,head.length).setValues([head]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+function surveyAnswers_(survey) {
+  const sh = surveyTab_(survey,false);
+  if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2,1,sh.getLastRow()-1,SURVEY_FIXED.length+survey.questions.length).getValues().filter(r=>r[0]);
+}
+function surveyOverview_() {
+  const survey = surveyDefinition_();
+  const {rows} = all_();
+  const attended = rows.filter(r=>r[0]&&r[1]&&r[4]&&r[9]);
+  const stats = {attended:attended.length, sent:attended.filter(r=>r[13]).length, responses:0};
+  let results = [];
+  if (survey) {
+    const answers = surveyAnswers_(survey);
+    stats.responses = answers.length;
+    results = survey.questions.map((q,i)=>{
+      const given = answers.map(a=>a[SURVEY_FIXED.length+i]).filter(v=>v!=='' && v!==null && v!==undefined);
+      if (q.type==='rating') {
+        const marks = given.map(Number).filter(n=>n>=1&&n<=5);
+        return {text:q.text, type:q.type, count:marks.length,
+          average: marks.length ? Math.round(marks.reduce((a,b)=>a+b,0)/marks.length*10)/10 : null,
+          spread: [1,2,3,4,5].map(n=>marks.filter(v=>v===n).length)};
+      }
+      if (q.type==='yesno') return {text:q.text, type:q.type, count:given.length,
+        yes:given.filter(v=>String(v)==='Yes').length, no:given.filter(v=>String(v)==='No').length};
+      return {text:q.text, type:q.type, count:given.length, comments:given.map(String).slice(-40)};
+    });
+  }
+  return {ok:true,
+    survey: survey ? {title:survey.title, message:survey.message, questions:survey.questions} : null,
+    locked: Boolean(survey && survey.sentAt), sentAt: (survey && survey.sentAt) || '', stats, results};
+}
+function sendSurveyEmail_(to, person, survey, cfg, url) {
+  const intro = survey.message || 'Thank you for joining us. We would be grateful for a few minutes of your time to tell us how the evening went.';
+  const body = `Hello ${person},\n\n${intro}\n\nOpen the survey: ${url}\n\nThis link is personal to you.`;
+  const html = `<div style="background:#050203;padding:28px 10px;font-family:Arial,sans-serif;color:#efe3c6">
+    <div style="max-width:560px;margin:auto;border:1px solid #c8a45d;background:#0a0405">
+      <div style="padding:28px 32px;border-bottom:1px solid #5e1719"><div style="letter-spacing:3px;font-size:12px;color:#c8a45d">${escape_(String(cfg.title).toUpperCase())}</div><h1 style="font-size:26px;margin:14px 0 0;color:#ead7a8;font-weight:normal">${escape_(survey.title)}</h1></div>
+      <div style="padding:28px 32px"><p>Hello ${escape_(person)},</p><p style="line-height:1.7">${escape_(intro)}</p>
+      <p style="margin:26px 0"><a href="${escape_(url)}" style="display:inline-block;padding:14px 24px;background:#c8a45d;color:#050203;text-decoration:none;font-weight:bold">Open the survey</a></p>
+      <p style="font-size:12px;line-height:1.6;color:#b9ab8c">This link is personal to you. Your answers are recorded by HR.</p></div></div></div>`;
+  MailApp.sendEmail({to, subject:survey.title+' | '+cfg.title, body, htmlBody:html, name:'Event Team'});
+}
+function surveyAdmin_(payload) {
+  const action = payload.action;
+  if (action==='surveyGet') return surveyOverview_();
+  const lock = LockService.getScriptLock(); lock.waitLock(12000);
+  try {
+    const current = surveyDefinition_();
+    if (action==='surveySave') {
+      if (current && current.sentAt) return {ok:false,error:'The survey has already been sent, so it can no longer be changed.',status:409};
+      const cleaned = cleanSurvey_(payload.survey);
+      if (cleaned.error) return {ok:false,error:cleaned.error,status:400};
+      props_().setProperty('SURVEY_DEFINITION', JSON.stringify(cleaned.survey));
+      return surveyOverview_();
+    }
+    // surveySend
+    if (!current) return {ok:false,error:'Save the survey before sending it.',status:400};
+    const cfg = settings_();
+    if (!current.sentAt) {
+      const earlier = spreadsheet_().getSheetByName(SURVEY_TAB);
+      if (earlier && earlier.getLastRow() > 1)
+        return {ok:false,error:'The "Survey responses" tab already holds answers from an earlier survey. Rename or delete that tab in the Sheet, then send again.',status:409};
+    }
+    surveyTab_(current,true);
+    const {sh,rows} = all_();
+    let quota = Math.min(MailApp.getRemainingDailyQuota(), SURVEY_BATCH), sent = 0, failed = 0;
+    for (let i=0; i<rows.length && quota>0; i++) {
+      const r = rows[i];
+      if (!r[0]||!r[1]||!r[4]||!r[9]||r[13]) continue; // only guests who were checked in, and only once each
+      try {
+        sendSurveyEmail_(String(r[1]), String(r[0]), current, cfg, cfg.base+'/survey?token='+encodeURIComponent(r[4]));
+        sh.getRange(i+2,14).setValue(new Date()); sh.getRange(i+2,15).clearContent(); sent++;
+      } catch(err) { sh.getRange(i+2,15).setValue(String(err).slice(0,180)); failed++; }
+      quota--;
+    }
+    if (sent && !current.sentAt) {
+      current.sentAt = new Date().toISOString();
+      props_().setProperty('SURVEY_DEFINITION', JSON.stringify(current));
+    }
+    SpreadsheetApp.flush();
+    const overview = surveyOverview_();
+    overview.sent = sent; overview.failed = failed;
+    overview.remaining = overview.stats.attended - overview.stats.sent;
+    overview.quotaLeft = MailApp.getRemainingDailyQuota();
+    return overview;
+  } finally { lock.releaseLock(); }
+}
+function surveyGuest_(payload, token) {
+  const {rows} = all_(); const i = find_(rows, token);
+  if (i < 0) return {ok:false,error:'We could not find your details. Please use the link in your email.',status:404};
+  const r = rows[i];
+  if (!r[9]) return {ok:false,error:'This survey is for guests who attended the event.',status:403};
+  const survey = surveyDefinition_();
+  if (!survey || !survey.sentAt) return {ok:false,error:'The survey is not open yet.',status:404};
+  if (payload.action==='surveyForm') {
+    const answered = surveyAnswers_(survey).some(a=>String(a[0]).toLowerCase()===token);
+    return {ok:true, guest:{name:String(r[0])}, answered,
+      survey:{title:survey.title, message:survey.message, questions:survey.questions}};
+  }
+  const given = Array.isArray(payload.answers) ? payload.answers : [];
+  const values = [];
+  for (let q=0; q<survey.questions.length; q++) {
+    const type = survey.questions[q].type, answer = given[q];
+    if (type==='rating') {
+      const mark = Number(answer);
+      if (!(Number.isInteger(mark) && mark>=1 && mark<=5)) return {ok:false,error:'Please answer every rating question.',status:400};
+      values.push(mark);
+    } else if (type==='yesno') {
+      if (answer!=='Yes' && answer!=='No') return {ok:false,error:'Please answer every Yes or No question.',status:400};
+      values.push(answer);
+    } else values.push(plain_(String(answer==null ? '' : answer).trim()));
+  }
+  const lock = LockService.getScriptLock(); lock.waitLock(12000);
+  try {
+    const sh = surveyTab_(survey,true);
+    const last = sh.getLastRow();
+    let row = last + 1;
+    if (last > 1) { // a guest who answers again replaces their earlier row
+      const at = sh.getRange(2,1,last-1,1).getValues().findIndex(t=>String(t[0]).toLowerCase()===token);
+      if (at >= 0) row = at + 2;
+    }
+    sh.getRange(row,1,1,SURVEY_FIXED.length+values.length).setValues([[token,new Date(),String(r[0]),String(r[2]||'')].concat(values)]);
+    return {ok:true};
+  } finally { lock.releaseLock(); }
+}
+

@@ -34,7 +34,7 @@ export function safeOrigin(req: NextRequest) {
 }
 
 /** Calls the Apps Script web app that reads and writes HR's private Google Sheet. */
-export async function sheet(action: string, fields: Record<string, unknown> = {}) {
+export async function sheet(action: string, fields: Record<string, unknown> = {}, timeoutMs = 15000) {
   const url = process.env.SHEET_WEBHOOK_URL;
   const secret = process.env.SHEET_WEBHOOK_SECRET;
   if (!url || !secret || url.includes('REPLACE_ME')) throw httpError('Google Sheet integration is not configured yet.', 503);
@@ -45,7 +45,7 @@ export async function sheet(action: string, fields: Record<string, unknown> = {}
     body: JSON.stringify({ secret, action, ...fields }),
     redirect: 'follow',
     cache: 'no-store',
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!response.ok) throw httpError('Google Sheets service unavailable', 502);
 

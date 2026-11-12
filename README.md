@@ -11,7 +11,8 @@ The iMET awards website, built with **Next.js, React and TypeScript** and styled
 | `/` | Public event page: curtain intro, event title, live countdown, the evening, programme, details and event theme |
 | `/invite?token=…` | A guest's personal RSVP page: confirm or decline, see their seat, collect their QR entry pass |
 | `/ticket?token=…` | Full-screen QR pass for confirmed guests |
-| `/staff` | Password-protected check-in dashboard: live totals, camera QR scanner, manual check-in. Installable on a phone's home screen |
+| `/staff` | Password-protected check-in dashboard: live totals, camera QR scanner, manual check-in, and the post-event survey tool. Installable on a phone's home screen |
+| `/survey?token=…` | The post-event survey a guest fills in. Opens only for guests who were checked in at the event |
 | `/api/*` | Server routes that talk to the Google Sheet. Secrets never reach the browser |
 
 Older links ending in `.html` (for example `/invite.html?token=…` in emails already sent) still work.
@@ -119,13 +120,32 @@ The design is deliberately plain: flat gold type, thin rules and the wall photog
 - Confirmed guests see their QR pass on the RSVP page and at `/ticket?token=…`.
 - Entry staff open `/staff`, sign in, and scan passes with the phone camera, or paste the pass link. The Sheet records `CheckedInAt`; a second scan is flagged as already checked in.
 - The dashboard shows the list size, invitations sent, acknowledgements, confirmations, declines and check-ins.
-- HR runs **`installDailyTrigger`** once to schedule reminders at 14, 7 and 1 days, and the survey email at least 24 hours after the event if `SURVEY_URL` is set. Google's daily email quota applies; large lists may need several runs or a dedicated email service.
+- HR runs **`installDailyTrigger`** once to schedule reminders at 14, 7 and 1 days. The post-event survey is sent from the staff dashboard (section 4). Google's daily email quota applies; large lists may need several runs or a dedicated email service.
 
-## 4. Staff phone app
+## 4. Post-event survey
+
+HR runs the survey from the **Post-event survey** panel at the bottom of `/staff`.
+
+1. **Write it.** Edit the title, the message that goes in the email, and up to 12 questions. Each question is a rating from 1 to 5, a yes or no, or a written answer. A starter set of questions is filled in to edit. Click **Save survey**.
+2. **Send it.** Click **Send to N guests who attended**, then **Send now**. The email goes **only to guests with a check-in time** in the Sheet, once each. Guests who confirmed but did not come, declined, or never answered do not receive it, and the survey link will not open for them.
+3. **Late arrivals.** If someone is checked in after the survey went out, the panel shows **Send to N more guests**.
+4. **Read the results.** The panel shows how many attended, how many were sent the survey and how many answered, with the average and spread for ratings, yes and no counts, and written comments. Every answer is also written to a **Survey responses** tab in the Sheet, one row per guest. A guest who answers twice replaces their earlier row.
+
+Good to know:
+
+- Once the survey has been sent, its questions are locked so that every guest answers the same thing.
+- Emails are sent ten at a time and the page keeps going until everyone has one. Google limits how many emails an account can send per day; if the limit is reached the page says how many are still waiting, and you can continue the next day.
+- An address that fails is noted in the `LastError` column of the Guests tab and does not hold up the others.
+- To run a new survey for another event, rename or delete the **Survey responses** tab and remove the `SURVEY_DEFINITION` script property.
+- The older option of emailing an external link (`SURVEY_URL`) still exists, now also restricted to guests who attended. It switches itself off once a survey has been saved in the dashboard.
+
+**This feature needs the updated script.** Paste the new `sheets/AppsScript.gs` over the old one in Apps Script, save, then **Deploy > Manage deployments > Edit > Version: New version > Deploy**. The web app address stays the same.
+
+## 5. Staff phone app
 
 On Android Chrome open `/staff` and choose **Install app** or **Add to Home screen**; on iPhone Safari use **Share > Add to Home Screen**. The camera needs HTTPS and permission. Scanning and totals need a connection; manual entry remains available when the camera is not.
 
-## 5. Privacy and safeguards
+## 6. Privacy and safeguards
 
 - The Sheet stays private. Public pages never receive the guest list or email addresses.
 - QR codes hold a random per-guest link, not a name or email. Treat links and codes as bearer passes; ask guests not to forward them.
@@ -135,7 +155,7 @@ On Android Chrome open `/staff` and choose **Install app** or **Add to Home scre
 - Not included: offline check-in, email bounce reporting, an editable seating chart, or an in-site survey dashboard.
 - Agree with HR how long attendee data is kept and when it is deleted.
 
-## 6. Checklist before sending real invitations
+## 7. Checklist before sending real invitations
 
 1. The home page shows the right name, date, time and venue on a phone and a laptop.
 2. `/invite` without a valid link shows guidance, not guest details.
@@ -145,6 +165,7 @@ On Android Chrome open `/staff` and choose **Install app** or **Add to Home scre
 6. Scanning a pass records the check-in; scanning it again says **Already checked in**.
 7. The scanner works on an iPhone and an Android phone.
 8. One test invitation and one test reminder arrive as expected.
+9. After checking in a test guest, save a survey on `/staff`, send it, answer it from the email, and confirm the answer appears in the results and in the **Survey responses** tab.
 
 ## Notes
 

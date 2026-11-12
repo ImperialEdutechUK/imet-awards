@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Html5Qrcode } from 'html5-qrcode';
+import { api } from '@/lib/clientApi';
 import { event } from '@/lib/event';
+import { SurveyManager } from './SurveyManager';
 import p from './portal.module.css';
 import s from './staff.module.css';
 
@@ -15,17 +17,6 @@ const STATS: [keyof Counts, string][] = [
   ['total', 'On HR list'], ['sent', 'Invitations sent'], ['received', 'Acknowledged'],
   ['confirmed', 'Confirmed'], ['declined', 'Declined'], ['checkedIn', 'Checked in'],
 ];
-
-async function api<T = Record<string, unknown>>(path: string, method: 'GET' | 'POST' = 'GET', data?: unknown): Promise<T> {
-  const res = await fetch(`/api/${path}`, {
-    method, credentials: 'same-origin', cache: 'no-store',
-    headers: data ? { 'Content-Type': 'application/json' } : undefined,
-    body: data ? JSON.stringify(data) : undefined,
-  });
-  const body = await res.json().catch(() => ({ error: 'Unexpected server response' }));
-  if (!res.ok || !body.ok) throw Object.assign(new Error(body.error || 'Request failed'), { status: res.status });
-  return body as T;
-}
 
 /** Accepts a bare token or a full pass link (old or new address format). */
 function parsePass(text: string) {
@@ -204,6 +195,8 @@ export function StaffClient() {
           <button type="button" className="link-quiet" onClick={refresh}>Refresh attendance totals</button>
         </section>
       </div>
+
+      <SurveyManager checkedIn={counts?.checkedIn ?? 0} />
     </div>
   );
 }
