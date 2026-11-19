@@ -3,25 +3,25 @@
 .wide { width: min(1120px, 100% - 2 * var(--gutter)); }
 
 .intro { text-align: center; margin-bottom: clamp(26px, 4vw, 38px); animation: rise 0.7s var(--ease) both; }
-.title { font-family: var(--font-display); font-weight: 600; font-size: clamp(29px, 5vw, 46px); line-height: 1.2; letter-spacing: 0.03em; color: var(--gold-light); text-wrap: balance; }
-.meta { margin-top: 14px; font-size: 16.5px; color: var(--champagne); font-variant-numeric: lining-nums; }
+.title { font-family: var(--font-display); font-weight: 700; font-size: clamp(32px, 5vw, 52px); line-height: 1.08; letter-spacing: -0.035em; color: var(--gold-light); text-wrap: balance; }
+.meta { margin-top: 14px; font-size: 17px; font-weight: 500; color: var(--champagne); text-wrap: balance; font-variant-numeric: lining-nums; }
 .text { margin-top: 12px; color: var(--text-soft); text-wrap: pretty; }
 
-.panel { padding: clamp(28px, 6vw, 48px) clamp(20px, 6vw, 50px); border: 1px solid var(--line-strong); background: rgba(5, 2, 3, 0.82); text-align: center; animation: rise 0.8s var(--ease) 0.1s both; }
+.panel { padding: clamp(28px, 6vw, 48px) clamp(20px, 6vw, 50px); border: 1px solid rgba(200, 164, 93, 0.2); border-radius: 28px; background: rgba(5, 2, 3, 0.78); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); text-align: center; animation: rise 0.8s var(--ease) 0.1s both; }
 
-.overline { font-size: 13px; font-weight: 400; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-soft); }
-.name { margin-top: 10px; font-family: var(--font-display); font-weight: 600; font-size: clamp(25px, 4.8vw, 38px); line-height: 1.2; letter-spacing: 0.03em; color: var(--champagne); overflow-wrap: anywhere; }
-.info { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 48px; margin: 26px 0 0; padding: 20px 0; border-block: 1px solid var(--line); }
-.info dt { font-size: 12.5px; font-weight: 400; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-soft); }
-.info dd { margin-top: 4px; font-size: 18px; font-weight: 400; color: var(--champagne); }
-.status { margin: 26px auto 22px; max-width: 30em; font-size: 18px; color: var(--champagne); }
+.overline { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--gold-soft); }
+.name { margin-top: 6px; font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 4.8vw, 40px); line-height: 1.1; letter-spacing: -0.03em; color: var(--champagne); overflow-wrap: anywhere; }
+.info { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 48px; margin: 26px 0 0; padding: 18px 24px; border-radius: 18px; background: rgba(239, 227, 198, 0.05); }
+.info dt { font-size: 14px; font-weight: 500; letter-spacing: -0.005em; color: var(--gold-soft); }
+.info dd { margin-top: 2px; font-size: 19px; font-weight: 600; letter-spacing: -0.02em; color: var(--champagne); }
+.status { margin: 26px auto 22px; max-width: 30em; font-size: 18px; font-weight: 500; letter-spacing: -0.015em; color: var(--champagne); }
 .confirmed { color: var(--gold-light); }
 .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 24px; }
 .status + .actions { margin-top: 0; }
 .ack { flex-basis: 100%; }
 
 .pass { margin-top: 34px; padding-top: 32px; border-top: 1px solid var(--line); animation: rise 0.7s var(--ease) both; }
-.qr { width: min(240px, 78%); height: auto; aspect-ratio: 1; margin: 16px auto 14px; padding: 10px; background: var(--gold-light); }
+.qr { width: min(240px, 78%); height: auto; aspect-ratio: 1; margin: 16px auto 14px; padding: 12px; border-radius: 20px; background: var(--gold-light); }
 .qrLarge { width: min(320px, 88%); }
 .caption { max-width: 26em; margin: 0 auto 22px; font-size: 15.5px; color: var(--text-soft); }
 
@@ -30,7 +30,7 @@
 .note { margin-top: 10px; text-align: center; font-size: 15px; color: var(--text-soft); }
 .loading { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 26px 0; color: var(--text-soft); }
 .spinner { width: 28px; height: 28px; border: 2px solid var(--line); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.9s linear infinite; }
-.errorTitle { font-family: var(--font-display); font-weight: 600; font-size: clamp(22px, 4vw, 29px); letter-spacing: 0.03em; color: var(--gold-light); }
+.errorTitle { font-family: var(--font-display); font-weight: 700; font-size: clamp(24px, 4vw, 32px); line-height: 1.15; letter-spacing: -0.03em; text-wrap: balance; color: var(--gold-light); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }

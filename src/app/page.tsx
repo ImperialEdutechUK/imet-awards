@@ -8,8 +8,6 @@ import { SiteHeader } from '@/components/SiteHeader';
 import s from '@/components/home.module.css';
 import { event } from '@/lib/event';
 
-const numerals = ['I', 'II', 'III', 'IV', 'V', 'VI'];
-
 export default function HomePage() {
   return (
     <CurtainIntro>
@@ -52,9 +50,8 @@ export default function HomePage() {
               <p className={s.body}>{event.programmeNote}</p>
             </div>
             <ol className={s.steps}>
-              {event.programme.map((item, i) => (
+              {event.programme.map((item) => (
                 <li key={item.heading}>
-                  <span className={s.numeral} aria-hidden="true">{numerals[i]}</span>
                   <h3>{item.heading}</h3>
                   <p>{item.detail}</p>
                 </li>

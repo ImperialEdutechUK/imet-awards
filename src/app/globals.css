@@ -17,9 +17,13 @@
   --line: rgba(200, 164, 93, 0.3);
   --line-strong: rgba(200, 164, 93, 0.6);
 
-  --font-display: 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
-  --font-body: 'Jost', 'Century Gothic', 'Avenir Next', 'Segoe UI', sans-serif;
-  --font-script: 'Pinyon Script', 'Snell Roundhand', 'Apple Chancery', cursive;
+  /* Apple's San Francisco where the system has it; Inter (self-hosted, with optical sizes) everywhere else. */
+  --font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Helvetica Neue', sans-serif;
+  --font-body: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Helvetica Neue', sans-serif;
+
+  --radius-pill: 999px;
+  --radius-card: 22px;
+  --radius-field: 12px;
 
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --gutter: clamp(20px, 5vw, 64px);
@@ -33,9 +37,11 @@ body {
   margin: 0;
   color: var(--text);
   font-family: var(--font-body);
-  font-weight: 300;
+  font-weight: 400;
   font-size: 17px;
-  line-height: 1.7;
+  line-height: 1.53;
+  letter-spacing: -0.012em;
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -46,6 +52,11 @@ button { cursor: pointer; }
 img, svg { display: block; max-width: 100%; }
 ::selection { background: var(--gold); color: var(--black); }
 :focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+.btn:focus-visible, button:focus-visible { outline-offset: 3px; }
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--black); }
+::-webkit-scrollbar-thumb { background: var(--burgundy); border: 2px solid var(--black); border-radius: var(--radius-pill); }
+html { scrollbar-color: var(--burgundy) var(--black); caret-color: var(--gold-light); }
 section[id] { scroll-margin-top: calc(var(--header) + 12px); }
 
 /* The wall: one photograph fixed behind the whole site, with a little shade so type stays readable. */
@@ -58,13 +69,15 @@ section[id] { scroll-margin-top: calc(var(--header) + 12px); }
 .container { width: min(1120px, 100% - 2 * var(--gutter)); margin-inline: auto; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-/* Buttons: flat colour, no effects. */
+/* Buttons: pill-shaped, sentence case, flat colour. A slight press on tap. */
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 14px 30px;
-  border: 1px solid var(--gold); border-radius: 0;
-  font-family: var(--font-body); font-weight: 500; font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; text-align: center;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 12px 28px;
+  border: 1px solid var(--gold); border-radius: var(--radius-pill);
+  font-family: var(--font-body); font-weight: 500; font-size: 17px; letter-spacing: -0.01em; line-height: 1.2; text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.25s var(--ease);
 }
+.btn:not(:disabled):active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.5; cursor: wait; }
 .btn-gold { background: var(--gold); color: var(--black); }
 .btn-gold:not(:disabled):hover { background: var(--gold-light); border-color: var(--gold-light); }
@@ -73,7 +86,7 @@ section[id] { scroll-margin-top: calc(var(--header) + 12px); }
 .btn-wine { background: var(--burgundy); color: var(--champagne); border-color: var(--wine); }
 .btn-wine:not(:disabled):hover { background: var(--wine); }
 .btn-block { width: 100%; }
-.link-quiet { padding: 8px 4px; border: 0; background: none; color: var(--gold-soft); font-size: 15px; font-weight: 400; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 5px; transition: color 0.2s; }
+.link-quiet { padding: 8px 4px; border: 0; background: none; color: var(--gold-soft); font-size: 15px; font-weight: 400; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 4px; transition: color 0.2s; }
 .link-quiet:hover { color: var(--champagne); }
 
 /* Curtain intro: returning visitors (marked before the page paints), reduced motion, and scroll lock. */

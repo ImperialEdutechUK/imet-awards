@@ -17,12 +17,6 @@ export function Hero() {
   return (
     <section className={s.hero} aria-labelledby="hero-title">
       <motion.div className={`container ${s.lockup}`} variants={group} initial="hidden" animate={revealed ? 'show' : 'hidden'}>
-        <motion.p className={s.save} variants={rise}>
-          <i aria-hidden="true" />
-          <span>Save the date</span>
-          <i aria-hidden="true" />
-        </motion.p>
-
         <h1 id="hero-title" className={s.title} aria-label={event.name}>
           <motion.span className={s.titleTop} variants={rise} aria-hidden="true">{event.title.top}</motion.span>
           <motion.span className={s.titleMain} variants={rise} aria-hidden="true">{event.title.main}</motion.span>
@@ -35,7 +29,7 @@ export function Hero() {
         <motion.dl className={s.facts} variants={rise}>
           <div>
             <dt className="visually-hidden">Date</dt>
-            <dd>{event.dayText}, {event.dateText}</dd>
+            <dd><span className={s.factLabel}>Save the date</span> {event.dayText}, {event.dateText}</dd>
           </div>
           <div>
             <dt className="visually-hidden">Venue</dt>

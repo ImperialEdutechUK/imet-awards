@@ -1,12 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import '@fontsource/cinzel/500.css';
-import '@fontsource/cinzel/600.css';
-import '@fontsource/cinzel/700.css';
-import '@fontsource/jost/300.css';
-import '@fontsource/jost/400.css';
-import '@fontsource/jost/500.css';
-import '@fontsource/pinyon-script/400.css';
+import '@fontsource-variable/inter/opsz.css'; // fallback for San Francisco on non-Apple devices
 import './globals.css';
 import { Providers } from '@/components/Providers';
 import { event } from '@/lib/event';
